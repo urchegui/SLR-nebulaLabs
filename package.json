@@ -1,0 +1,12 @@
+{
+  "name": "slr-tool",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test:db": "node src/db/test-connection.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.1",
+    "dotenv": "^17.3.1"
+  }
+}
