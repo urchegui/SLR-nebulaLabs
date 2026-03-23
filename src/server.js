@@ -21,7 +21,7 @@ app.use(express.static(path.join(__dirname, '../web/dist')))
 // ... todas tus rutas API igual que antes ...
 
 // Cualquier ruta que no sea /api devuelve el index.html de React
-app.get('*', (req, res) => {
+app.get('/{*splat}', (req, res) => {
   if (!req.path.startsWith('/runs') && !req.path.startsWith('/api')) {
     res.sendFile(path.join(__dirname, '../web/dist/index.html'))
   }
