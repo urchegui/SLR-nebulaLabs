@@ -214,7 +214,7 @@ export async function runScreeningAgent(runId, options = {}) {
   await supabase
     .from('runs')
     .update({ status: 'screening_done', updated_at: new Date() })
-    .eq('id', run.id)
+    .eq('id', runId)
 
   console.log('── Screening Agent completado ─────────────────────────')
   console.log(`Total evaluados:  ${studies.length}`)

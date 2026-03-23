@@ -137,3 +137,23 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Vite / React build output
+web/dist/
+web/.vite/
+
+# Supabase local dev
+supabase/.branches/
+supabase/.temp/
+
+# Generated metadata
+_metadata.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
