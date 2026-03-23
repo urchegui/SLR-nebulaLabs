@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test:db": "node src/db/test-connection.js",
     "start":   "node src/server.js",
     "dev":     "node --watch src/server.js",
+    "build":   "cd web && npm install && npm run build",
     "test:db": "node src/db/test-connection.js"
   },
   "dependencies": {
