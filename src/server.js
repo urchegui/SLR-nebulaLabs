@@ -67,46 +67,98 @@ app.get('/runs/:id', async (req, res) => {
 // GET /runs/:id/stats
 app.get('/runs/:id/stats', async (req, res) => {
   const runId = req.params.id
-  const [studiesRes, prismaRes] = await Promise.all([
-    supabase.from('studies').select('id, screening_status, is_duplicate').eq('run_id', runId),
-    supabase.from('prisma_log').select('*').eq('run_id', runId).order('created_at', { ascending: true })
+
+  const [studiesRes, decisionsRes, prismaRes] = await Promise.all([
+    supabase.from('studies').select('id, is_duplicate').eq('run_id', runId),
+    supabase.from('screening_decisions').select('study_id, decision, stage').eq('stage', 'title_abstract'),
+    supabase.from('prisma_events').select('*').eq('run_id', runId).order('created_at', { ascending: true })
   ])
+
   if (studiesRes.error) return res.status(500).json({ error: studiesRes.error.message })
-  const studies = studiesRes.data || []
+
+  const studies   = studiesRes.data   || []
+  const decisions = decisionsRes.data || []
+
+  // Para cada study, la decisión vigente es la última (mayor created_at)
+  // La query ya devuelve todas las decisiones T&A — agrupamos por study_id
+  const studyIds = new Set(studies.map(s => s.id))
+  const latestDecision = {}
+  for (const d of decisions) {
+    if (studyIds.has(d.study_id)) latestDecision[d.study_id] = d.decision
+  }
+
+  const included = Object.values(latestDecision).filter(d => d === 'include').length
+  const excluded = Object.values(latestDecision).filter(d => d === 'exclude').length
+  const maybe    = Object.values(latestDecision).filter(d => d === 'maybe').length
+  const pending  = studies.filter(s => !s.is_duplicate && !latestDecision[s.id]).length
+
   res.json({
     total:      studies.length,
     duplicates: studies.filter(s => s.is_duplicate).length,
-    pending:    studies.filter(s => s.screening_status === 'pending').length,
-    included:   studies.filter(s => s.screening_status === 'included').length,
-    excluded:   studies.filter(s => s.screening_status === 'excluded').length,
+    pending,
+    included,
+    excluded,
+    maybe,
     prisma_log: prismaRes.data || []
   })
 })
 
-// GET /runs/:id/papers
+// GET /runs/:id/papers  — devuelve papers con su última decisión
 app.get('/runs/:id/papers', async (req, res) => {
-  const { status, limit = 50, offset = 0 } = req.query
-  let query = supabase
+  const { decision, limit = 50, offset = 0 } = req.query
+  const runId = req.params.id
+
+  // Traer studies del run
+  const { data: studies, error: studiesErr } = await supabase
     .from('studies')
     .select('*')
-    .eq('run_id', req.params.id)
+    .eq('run_id', runId)
+    .eq('is_duplicate', false)
     .range(Number(offset), Number(offset) + Number(limit) - 1)
-  if (status) query = query.eq('screening_status', status)
-  const { data, error } = await query
-  if (error) return res.status(500).json({ error: error.message })
-  res.json(data)
+
+  if (studiesErr) return res.status(500).json({ error: studiesErr.message })
+
+  // Traer decisiones T&A para esos studies
+  const ids = (studies || []).map(s => s.id)
+  if (ids.length === 0) return res.json([])
+
+  const { data: decisions } = await supabase
+    .from('screening_decisions')
+    .select('study_id, decision, reason, confidence, by_human')
+    .eq('stage', 'title_abstract')
+    .in('study_id', ids)
+
+  // Merge: última decisión por study
+  const decMap = {}
+  for (const d of (decisions || [])) decMap[d.study_id] = d
+
+  let result = studies.map(s => ({ ...s, screening: decMap[s.id] || null }))
+
+  if (decision) result = result.filter(s => s.screening?.decision === decision)
+
+  res.json(result)
 })
 
-// PATCH /runs/:id/papers/:paperId
-app.patch('/runs/:id/papers/:paperId', async (req, res) => {
-  const { screening_status, hitl_notes } = req.body
+// POST /runs/:id/papers/:paperId/decide  — decisión HITL humana
+app.post('/runs/:id/papers/:paperId/decide', async (req, res) => {
+  const { decision, reason } = req.body
+  if (!['include', 'exclude', 'maybe'].includes(decision)) {
+    return res.status(400).json({ error: 'decision must be include, exclude or maybe' })
+  }
+
   const { data, error } = await supabase
-    .from('studies')
-    .update({ screening_status, hitl_notes, updated_at: new Date() })
-    .eq('id', req.params.paperId)
-    .eq('run_id', req.params.id)
+    .from('screening_decisions')
+    .insert({
+      study_id:   req.params.paperId,
+      stage:      'title_abstract',
+      decision,
+      reason:     reason || null,
+      confidence: 1.0,
+      by_human:   true
+    })
     .select()
     .single()
+
   if (error) return res.status(500).json({ error: error.message })
   res.json(data)
 })
