@@ -19,8 +19,8 @@ export default function RunProgress({ runId, onGoToHITL }) {
       getRun(runId),
       getRunStats(runId)
     ])
-    setRun(runData.run)
-    setEvents(runData.prisma_events || [])
+    setRun(runData)
+    setEvents(statsData.prisma_log || [])
     setStats(statsData)
   }
 
@@ -75,10 +75,10 @@ export default function RunProgress({ runId, onGoToHITL }) {
           marginBottom: '24px'
         }}>
           {[
-            { label: 'Total',      value: stats.total,   color: 'var(--text-heading)' },
-            { label: 'Incluidos',  value: stats.include, color: 'var(--green)' },
-            { label: 'Excluidos',  value: stats.exclude, color: 'var(--red)' },
-            { label: 'Pendientes', value: stats.maybe,   color: 'var(--amber)' }
+            { label: 'Total',      value: stats.total,    color: 'var(--text-heading)' },
+            { label: 'Incluidos',  value: stats.included, color: 'var(--green)' },
+            { label: 'Excluidos',  value: stats.excluded, color: 'var(--red)' },
+            { label: 'Pendientes', value: stats.pending,  color: 'var(--amber)' }
           ].map(s => (
             <div key={s.label} style={{
               background: 'var(--bg-surface)',
@@ -141,7 +141,7 @@ export default function RunProgress({ runId, onGoToHITL }) {
       )}
 
       {/* Botón ir a HITL */}
-      {stats?.maybe > 0 && (
+      {stats?.pending > 0 && (
         <button
           onClick={() => onGoToHITL(runId)}
           style={{
@@ -157,7 +157,7 @@ export default function RunProgress({ runId, onGoToHITL }) {
             letterSpacing: '0.02em',
           }}
         >
-          Revisar {stats.maybe} papers pendientes →
+          Revisar {stats.pending} papers pendientes →
         </button>
       )}
     </div>
