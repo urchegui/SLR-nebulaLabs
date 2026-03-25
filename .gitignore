@@ -80,7 +80,6 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
@@ -139,7 +138,6 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # Vite / React build output
-web/dist/
 web/.vite/
 
 # Supabase local dev
