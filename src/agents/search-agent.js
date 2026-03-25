@@ -88,21 +88,23 @@ const saveStudies = async (runId, studies) => {
     return inserted;
 }
 
-export const runSearchAgent = async (topic, strings, options = {}) => {
+export const runSearchAgent = async (topic, strings, runId, options = {}) => {
     const {yearFrom = 2018, yearTo = 2026} = options
     console.log('SEARCH AGENT INITIATED');;
     console.log(`Topic: ${topic}`);
 
-    const {data:run, error:runError} = await supabase.from('runs').insert({
-        topic: topic,
-        status:'searching'
-    }).select().single();
+    const { error: updateError } = await supabase.from('runs').update({
+        status: 'searching',
+        updated_at: new Date()
+    }).eq('id', runId);
 
-    if(runError){
-        console.error('Error creating run: ', runError.message);
+    if(updateError){
+        console.error('Error updating run status: ', updateError.message);
         return null
     }
-    console.log(`Run creado: ${run.id}`);
+
+    const run = { id: runId }
+    console.log(`Run iniciado: ${run.id}`);
 
 
     const allResults = [];

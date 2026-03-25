@@ -37,7 +37,7 @@ app.post('/runs/create', async (req, res) => {
     : [topic]
 
   console.log(`[run:${run.id}] launching search agent with ${strings.length} strings`)
-  runSearchAgent(topic, strings)
+  runSearchAgent(topic, strings, run.id)
     .then(() => console.log(`[run:${run.id}] search agent completed`))
     .catch(err => console.error(`[run:${run.id}] search agent error:`, err.message, err.stack))
 
