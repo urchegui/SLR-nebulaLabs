@@ -68,23 +68,26 @@ app.get('/runs/:id', async (req, res) => {
 app.get('/runs/:id/stats', async (req, res) => {
   const runId = req.params.id
 
-  const [studiesRes, decisionsRes, prismaRes] = await Promise.all([
-    supabase.from('studies').select('id, is_duplicate').eq('run_id', runId),
-    supabase.from('screening_decisions').select('study_id, decision, stage').eq('stage', 'title_abstract'),
+  // Primero obtenemos los study IDs del run
+  const { data: studiesData, error: studiesErr } = await supabase
+    .from('studies').select('id, is_duplicate').eq('run_id', runId)
+  if (studiesErr) return res.status(500).json({ error: studiesErr.message })
+
+  const studyIds = (studiesData || []).map(s => s.id)
+
+  const [decisionsRes, prismaRes] = await Promise.all([
+    studyIds.length > 0
+      ? supabase.from('screening_decisions').select('study_id, decision').eq('stage', 'title_abstract').in('study_id', studyIds)
+      : Promise.resolve({ data: [] }),
     supabase.from('prisma_events').select('*').eq('run_id', runId).order('created_at', { ascending: true })
   ])
 
-  if (studiesRes.error) return res.status(500).json({ error: studiesRes.error.message })
+  const studies   = studiesData        || []
+  const decisions = decisionsRes.data  || []
 
-  const studies   = studiesRes.data   || []
-  const decisions = decisionsRes.data || []
-
-  // Para cada study, la decisión vigente es la última (mayor created_at)
-  // La query ya devuelve todas las decisiones T&A — agrupamos por study_id
-  const studyIds = new Set(studies.map(s => s.id))
   const latestDecision = {}
   for (const d of decisions) {
-    if (studyIds.has(d.study_id)) latestDecision[d.study_id] = d.decision
+    latestDecision[d.study_id] = d.decision
   }
 
   const included = Object.values(latestDecision).filter(d => d === 'include').length

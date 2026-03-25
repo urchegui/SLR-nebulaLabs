@@ -10,18 +10,24 @@ const STATUS_LABELS = {
 }
 
 export default function RunProgress({ runId, onGoToHITL }) {
-  const [run,    setRun]    = useState(null)
-  const [stats,  setStats]  = useState(null)
-  const [events, setEvents] = useState([])
+  const [run,       setRun]       = useState(null)
+  const [stats,     setStats]     = useState(null)
+  const [events,    setEvents]    = useState([])
+  const [refreshing, setRefreshing] = useState(false)
 
   async function refresh() {
-    const [runData, statsData] = await Promise.all([
-      getRun(runId),
-      getRunStats(runId)
-    ])
-    setRun(runData)
-    setEvents(statsData.prisma_log || [])
-    setStats(statsData)
+    setRefreshing(true)
+    try {
+      const [runData, statsData] = await Promise.all([
+        getRun(runId),
+        getRunStats(runId)
+      ])
+      setRun(runData)
+      setEvents(statsData.prisma_log || [])
+      setStats(statsData)
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   // Polling cada 3 segundos mientras la búsqueda está en curso
@@ -35,7 +41,16 @@ export default function RunProgress({ runId, onGoToHITL }) {
 
   if (!run) return (
     <div style={{ textAlign: 'center', padding: '64px', color: 'var(--text-dim)', fontSize: '13px' }}>
-      Cargando...
+      <div style={{
+        width: '20px', height: '20px',
+        border: '2px solid var(--border)',
+        borderTopColor: 'var(--accent)',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite',
+        margin: '0 auto 16px',
+      }} />
+      Cargando run...
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
 
@@ -46,8 +61,19 @@ export default function RunProgress({ runId, onGoToHITL }) {
 
       {/* Header */}
       <div style={{ marginBottom: '28px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '10px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           {run.topic}
+          {refreshing && (
+            <span style={{
+              width: '12px', height: '12px',
+              border: '2px solid var(--border)',
+              borderTopColor: 'var(--accent)',
+              borderRadius: '50%',
+              display: 'inline-block',
+              animation: 'spin 0.8s linear infinite',
+              flexShrink: 0,
+            }} />
+          )}
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{
