@@ -36,9 +36,10 @@ app.post('/runs/create', async (req, res) => {
     ? description.split('\n').map(s => s.trim()).filter(Boolean)
     : [topic]
 
-  runSearchAgent(topic, strings).catch(err =>
-    console.error(`[run:${run.id}] search agent error:`, err.message)
-  )
+  console.log(`[run:${run.id}] launching search agent with ${strings.length} strings`)
+  runSearchAgent(topic, strings)
+    .then(() => console.log(`[run:${run.id}] search agent completed`))
+    .catch(err => console.error(`[run:${run.id}] search agent error:`, err.message, err.stack))
 
   res.json(run)
 })
