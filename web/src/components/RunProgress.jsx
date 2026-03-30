@@ -4,7 +4,7 @@ import { getRun, getRunStats } from '../lib/api.js'
 const STATUS_LABELS = {
   created:        { label: 'Creado',             color: '#9ca3af' },
   searching:      { label: 'Buscando papers...', color: '#3b82f6' },
-  search_done:    { label: 'Búsqueda completa',  color: '#8b5cf6' },
+  search_done:    { label: 'Screening en curso...', color: '#8b5cf6' },
   screening_done: { label: 'Screening completo', color: '#10b981' },
   error:          { label: 'Error',              color: '#ef4444' }
 }
@@ -30,14 +30,16 @@ export default function RunProgress({ runId, onGoToHITL }) {
     }
   }
 
-  // Polling cada 3 segundos mientras la búsqueda está en curso
+  // Polling cada 3 segundos mientras el proceso está en curso
+  const isRunning = ['pending', 'searching', 'search_done'].includes(run?.status)
+
   useEffect(() => {
     refresh()
     const interval = setInterval(() => {
-      if (run?.status === 'searching') refresh()
+      if (isRunning) refresh()
     }, 3000)
     return () => clearInterval(interval)
-  }, [runId, run?.status])
+  }, [runId, isRunning])
 
   if (!run) return (
     <div style={{ textAlign: 'center', padding: '64px', color: 'var(--text-dim)', fontSize: '13px' }}>
