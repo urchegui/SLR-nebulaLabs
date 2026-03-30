@@ -1,5 +1,6 @@
 import { supabase } from "../db/client.js";
 import { logAudit, logPrismaEvent } from "../utils/prisma-logger.js";
+import { runScreeningAgent } from "./screening-agent.js";
 
 const AGENT_USER_ID = null
 
@@ -168,6 +169,9 @@ export const runSearchAgent = async (topic, strings, runId, options = {}) => {
     console.log(`Duplicates marked: ${duplicate}`);
     console.log(`Unique Papers: ${afterDedup.length}`);
     console.log(`Saved in DB : ${inserted}`);
+
+    console.log('\nLaunching screening agent...');
+    await runScreeningAgent(run.id);
 
     return run.id;
 }
