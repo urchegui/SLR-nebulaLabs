@@ -1,26 +1,21 @@
-import express      from 'express'
-import cors         from 'cors'
-import path         from 'path'
-import { fileURLToPath } from 'url'
+import express from 'express'
+import cors    from 'cors'
 import 'dotenv/config'
 
 import { runSearchAgent } from './agents/search-agent.js'
 import { supabase }       from './db/client.js'
 
-const app     = express()
-const PORT    = process.env.PORT || 3000
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const app    = express()
+const router = express.Router()
+const PORT   = process.env.PORT || 3000
 
 app.use(cors())
 app.use(express.json())
 
-// Servir el frontend React buildeado
-app.use(express.static(path.join(__dirname, '../web/dist')))
-
 // ── Runs ──────────────────────────────────────────────────────────────────────
 
-// POST /runs/create
-app.post('/runs/create', async (req, res) => {
+// POST /api/runs/create
+router.post('/runs/create', async (req, res) => {
   const { topic, description } = req.body
   if (!topic) return res.status(400).json({ error: 'topic is required' })
 
@@ -44,8 +39,8 @@ app.post('/runs/create', async (req, res) => {
   res.json(run)
 })
 
-// GET /runs
-app.get('/runs', async (_req, res) => {
+// GET /api/runs
+router.get('/runs', async (_req, res) => {
   const { data, error } = await supabase
     .from('runs')
     .select('*')
@@ -54,8 +49,8 @@ app.get('/runs', async (_req, res) => {
   res.json(data)
 })
 
-// GET /runs/:id
-app.get('/runs/:id', async (req, res) => {
+// GET /api/runs/:id
+router.get('/runs/:id', async (req, res) => {
   const { data, error } = await supabase
     .from('runs')
     .select('*')
@@ -65,8 +60,8 @@ app.get('/runs/:id', async (req, res) => {
   res.json(data)
 })
 
-// GET /runs/:id/stats
-app.get('/runs/:id/stats', async (req, res) => {
+// GET /api/runs/:id/stats
+router.get('/runs/:id/stats', async (req, res) => {
   const runId = req.params.id
 
   // Primero obtenemos los study IDs del run
@@ -107,8 +102,8 @@ app.get('/runs/:id/stats', async (req, res) => {
   })
 })
 
-// GET /runs/:id/papers  — devuelve papers con su última decisión
-app.get('/runs/:id/papers', async (req, res) => {
+// GET /api/runs/:id/papers  — devuelve papers con su última decisión
+router.get('/runs/:id/papers', async (req, res) => {
   const { decision, limit = 50, offset = 0 } = req.query
   const runId = req.params.id
 
@@ -143,8 +138,8 @@ app.get('/runs/:id/papers', async (req, res) => {
   res.json(result)
 })
 
-// POST /runs/:id/papers/:paperId/decide  — decisión HITL humana
-app.post('/runs/:id/papers/:paperId/decide', async (req, res) => {
+// POST /api/runs/:id/papers/:paperId/decide  — decisión HITL humana
+router.post('/runs/:id/papers/:paperId/decide', async (req, res) => {
   const { decision, reason } = req.body
   if (!['include', 'exclude', 'maybe'].includes(decision)) {
     return res.status(400).json({ error: 'decision must be include, exclude or maybe' })
@@ -167,12 +162,7 @@ app.post('/runs/:id/papers/:paperId/decide', async (req, res) => {
   res.json(data)
 })
 
-// Cualquier ruta que no sea /runs devuelve el index.html de React
-app.get('/{*splat}', (req, res) => {
-  if (!req.path.startsWith('/runs') && !req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../web/dist/index.html'))
-  }
-})
+app.use('/api', router)
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`)
