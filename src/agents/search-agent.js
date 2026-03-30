@@ -159,11 +159,6 @@ export const runSearchAgent = async (topic, strings, runId, options = {}) => {
 
     const inserted = await saveStudies(run.id, studies)
 
-    await supabase.from('runs').update({
-        status: 'search_done',
-        updated_at: new Date()
-    }).eq('id', run.id);
-
     console.log('\nSearch agent completed');
     console.log(`Papers found: ${allResults.length}`);
     console.log(`Duplicates marked: ${duplicate}`);
